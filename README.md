@@ -9,7 +9,7 @@
 *   **Schwierigkeit:** Hard
 *   **Autor der VM:** DarkSpirit
 *   **Datum des Writeups:** 17. Oktober 2022
-*   **Original-Writeup:** https://alientec1908.github.io/SuidyRevenge_HackMyVM_Hard/
+*   **Original-Writeup:** https://alientec1908.github.io/Suidyrevenge_HackMyVM_Hard/
 *   **Autor:** Ben C.
 
 ## Kurzbeschreibung
