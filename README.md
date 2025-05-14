@@ -1,6 +1,6 @@
 # SuidyRevenge - HackMyVM (Hard)
  
-![suidy.png](suidy.png)
+![Suidyrevenge.png](Suidyrevenge.png)
 
 ## Übersicht
 
