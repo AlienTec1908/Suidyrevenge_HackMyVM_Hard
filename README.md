@@ -5,11 +5,11 @@
 ## Übersicht
 
 *   **VM:** SuidyRevenge (obwohl der Link "suidy" lautet, wird im Text "SuidyRevenge" verwendet)
-*   **Plattform:** HackMyVM (https://hackmyvm.eu/machines/machine.php?vm=suidy)
+*   **Plattform:** HackMyVM (https://hackmyvm.eu/machines/machine.php?vm=SuidyRevenge)
 *   **Schwierigkeit:** Hard
 *   **Autor der VM:** DarkSpirit
 *   **Datum des Writeups:** 17. Oktober 2022
-*   **Original-Writeup:** https://alientec1908.github.io/suidy_HackMyVM_Medium/
+*   **Original-Writeup:** https://alientec1908.github.io/SuidyRevenge_HackMyVM_Medium/
 *   **Autor:** Ben C.
 
 ## Kurzbeschreibung
