@@ -4,8 +4,8 @@
 
 ## Übersicht
 
-*   **VM:** SuidyRevenge (obwohl der Link "suidy" lautet, wird im Text "SuidyRevenge" verwendet)
-*   **Plattform:** HackMyVM (https://hackmyvm.eu/machines/machine.php?vm=SuidyRevenge)
+*   **VM:** SuidyRevenge
+*   **Plattform:** HackMyVM (https://hackmyvm.eu/machines/machine.php?vm=Suidyrevenge)
 *   **Schwierigkeit:** Hard
 *   **Autor der VM:** DarkSpirit
 *   **Datum des Writeups:** 17. Oktober 2022
@@ -51,7 +51,7 @@ Der Angriff auf die Maschine "SuidyRevenge" gliederte sich in folgende Phasen:
     *   IP-Findung mit `arp-scan` (`192.168.2.155`).
     *   `nmap`-Scan identifizierte offene Ports: 22 (SSH - OpenSSH 7.9p1) und 80 (HTTP - Nginx 1.14.2).
     *   `gobuster` auf Port 80 fand nur `/index.html`.
-    *   Manuelle Untersuchung des Quellcodes von `/index.html` offenbarte einen HTML-Kommentar mit den Credentials `theuser:different` und einen Hinweis auf ein Verzeichnis `/supersecure` (letzteres spielte im weiteren Verlauf keine Rolle).
+    *   Manuelle Untersuchung des Quellcodes von `/index.html` offenbarte einen HTML-Kommentar mit den Credentials `theuser:different`.
 
 2.  **Initial Access (SSH Login):**
     *   Erfolgreicher SSH-Login als `theuser` mit dem Passwort `different` (`ssh theuser@192.168.2.155`).
@@ -74,7 +74,7 @@ Der Angriff auf die Maschine "SuidyRevenge" gliederte sich in folgende Phasen:
         ```
     *   Kompilieren des C-Programms auf dem Ziel mit `gcc ben.c -o ben`.
     *   Überschreiben des ursprünglichen `/home/suidy/suidyyyyy`-Binaries mit dem neu kompilierten `ben`-Binary (`mv ben suidyyyyy`).
-    *   Das SUID-Bit wurde entweder durch das Root-Skript erneut gesetzt oder manuell mit `chmod 4755 suidyyyyy` (obwohl die Berechtigung dafür als `suidy` fraglich ist; das Root-Skript ist wahrscheinlicher).
+    *   Das SUID-Bit wurde entweder durch das Root-Skript erneut gesetzt oder manuell mit `chmod 4755 suidyyyyy`.
     *   Ausführung des modifizierten `/home/suidy/suidyyyyy` als `suidy` startete eine Shell mit Root-Rechten.
     *   Root-Flag `HMVvoilarootlala` in `/root/root.txt` gelesen.
 
